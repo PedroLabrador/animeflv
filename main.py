@@ -57,13 +57,25 @@ def get_episode_list(anime, default_download='mega'):
 		script = str(soup.findAll('script')[14])
 		episodes = script.split('var episodes = ')[1]
 		episodes = ast.literal_eval(episodes[:episodes.find(';')])
+		episodes.sort(key=lambda x:x[0])
 	except Exception as e:
 		print(e)
 
 	if episodes:
 		try:
+			range_limit = None
+			if options.range:
+				range_limit = [int(n) for n in options.range.split(',')]
+				range_limit.sort()
+				if len(range_limit) != 2:
+					sys.exit('Wrong range specified')
 			for key, episode in enumerate(episodes):
 				id   = episode[1]
+				if range_limit:
+					if len(range_limit) == 2:
+						if key+1 < range_limit[0] or key+1 > range_limit[1]:
+							continue
+					
 				slug = anime['slug'] + '-' + str(episode[0])
 				episode_url = "https://animeflv.net/ver/{}/{}".format(id, slug)
 				print(f"Episode: {episode[0]}")
@@ -137,6 +149,7 @@ parser = OptionParser(option_class=URL)
 parser.add_option("-u", "--url", dest="url", help="decode URL", type="url")
 parser.add_option("-r", "--request", dest="get_anime_url", help="scrape for specific anime URLs")
 parser.add_option("-l", "--limit", help="limit default=10")
+parser.add_option("--range", help="range example=1,10")
 parser.add_option("-m", "--mega", action="store_true", help="download link default mega")
 parser.add_option("-z", "--zippyshare", action="store_true", help="download link default zippyshare")
 parser.add_option("-a", "--all", action="store_true", help="download all links")

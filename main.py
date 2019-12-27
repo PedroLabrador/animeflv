@@ -1,14 +1,73 @@
 # Only works on animeflv.net
 
-from copy import copy
-from optparse import Option, OptionParser
-from bs4 import BeautifulSoup
-import urllib.parse, sys, requests, json, ast
+from copy     import copy
+from optparse import Option
+from optparse import OptionParser
+from bs4      import BeautifulSoup
+import urllib.parse
+import sys
+import requests
+import json
+import ast
+import os
 
 headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
 
-def get_anime_url():
-	anime_name = options.get_anime_url
+def add_favorite_anime():
+	pass
+
+def check_updates():
+	home = os.path.expanduser('~')
+	
+	if sys.platform in ('linux', 'linux2'):
+		folder_path = home + '/.animeflv'
+		list_path   = folder_path + '/list.dat'
+
+		if not os.path.exists(folder_path):
+			os.mkdir(folder_path)
+		else:
+			list_file = open(list_path, 'r')
+			for item in list_file.readlines():
+				if not item.startswith('#'):
+					data  = item.replace('\n','').split(',')
+					url   = f"https://animeflv.net/anime/{data[0]}/{data[1]}"
+					anime = { 'url': url, 'id': data[0], 'name': data[1] }
+					episodes = get_episode_list(anime, updates=True)
+					episodes = [",".join([str(it_episode[0]), str(it_episode[1])]) for it_episode in episodes]
+					anime_path = f"{folder_path}/{data[0]}.dat"
+					not_watched_list = []
+
+					if os.path.exists(anime_path):
+						episode_file = open(anime_path, 'r')
+						episode_list = [episode.replace('\n', '') for episode in episode_file.readlines()]
+						episode_file.close()
+
+						for episode in episodes:
+							if not episode in episode_list:
+								not_watched_list.append(episode)
+
+						for not_watched in not_watched_list:
+							episode = not_watched.split(',')
+							id = episode[1]
+							slug = anime['name'] + '-' + str(episode[0])
+
+							print(f"Not watched episode #{episode[0]}")
+
+							episode_url = f"https://animeflv.net/ver/{id}/{slug}"
+							get_episode_download_link(episode_url, all_links=True)
+						
+							with open(anime_path, 'a+') as episode_file:
+								episode_file.write(not_watched)
+
+						if len(not_watched_list) == 0:
+							print("No new episodes")
+			
+	if sys.platform in ('win32'):
+		pass
+
+	sys.exit(0)
+
+def get_anime_url(anime_name):
 	params = {'value': anime_name}
 	animeflv_search = "https://animeflv.net/api/animes/search"
 	anime = None
@@ -44,7 +103,7 @@ def get_anime_url():
 		get_episode_list(anime)
 
 
-def get_episode_list(anime, default_download='mega'):
+def get_episode_list(anime, default_download='mega', updates=False):
 	episodes = None
 	limit = int(options.limit) if options.limit else 10
 	try:
@@ -58,8 +117,11 @@ def get_episode_list(anime, default_download='mega'):
 		episodes = script.split('var episodes = ')[1]
 		episodes = ast.literal_eval(episodes[:episodes.find(';')])
 		episodes.sort(key=lambda x:x[0])
+		if updates:
+			return episodes
 	except Exception as e:
 		print(e)
+		return []
 
 	if episodes:
 		try:
@@ -87,7 +149,8 @@ def get_episode_list(anime, default_download='mega'):
 			print(e)
 		
 
-def get_episode_download_link(url, choose='mega'):
+def get_episode_download_link(url, choose='mega', all_links=False):
+	all_links = options.all if options.all else all_links
 	try:
 		response = requests.get(url, headers=headers)
 		response.raise_for_status()
@@ -99,13 +162,13 @@ def get_episode_download_link(url, choose='mega'):
 			if (check_url('','',link)):
 				link = urllib.parse.unquote(link)
 				if link.find('ouo.io') != -1:
-					if options.all:
+					if all_links:
 						selected_links.append(link[link.find('?s=')+3:])
 					else:
 						selected_link = link[link.find('?s=')+3:]
 				if choose in link:
 					break
-		if options.all:
+		if all_links:
 			print("\n".join(selected_links))
 		else:
 			print(selected_link)
@@ -149,6 +212,7 @@ parser = OptionParser(option_class=URL)
 parser.add_option("-u", "--url", dest="url", help="decode URL", type="url")
 parser.add_option("-r", "--request", dest="get_anime_url", help="scrape for specific anime URLs")
 parser.add_option("-l", "--limit", help="limit default=10")
+parser.add_option("-c", "--checkupdates", action="store_true", dest="checkupdates", help="Checks if theres a new episode of your favorite list, needs to add favorites first.")
 parser.add_option("--range", help="range example=1,10")
 parser.add_option("-m", "--mega", action="store_true", help="download link default mega")
 parser.add_option("-z", "--zippyshare", action="store_true", help="download link default zippyshare")
@@ -157,6 +221,8 @@ parser.add_option("-a", "--all", action="store_true", help="download all links")
 
 
 if __name__ == '__main__':
+	if options.checkupdates:
+		check_updates()
 	if options.url:
 		url = options.url
 		url = urllib.parse.unquote(url)
@@ -165,7 +231,7 @@ if __name__ == '__main__':
 		else:
 			print(url[url.find('?s=')+3:])
 	if options.get_anime_url:
-		get_anime_url()
+		get_anime_url(options.get_anime_url)
 	else:
 		#print ("Bad HTTP Link")
 		get_links()

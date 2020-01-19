@@ -1,17 +1,20 @@
 # Only works on animeflv.net
 
-from copy     import copy
-from optparse import Option
-from optparse import OptionParser
-from bs4      import BeautifulSoup
-import urllib.parse
-import sys
-import requests
-import json
-import ast
 import os
+import ast
+import sys
+import json
+import requests
+import urllib.parse
+from bs4                 import BeautifulSoup
+from copy                import copy
+from optparse            import Option
+from optparse            import OptionParser
+from requests.exceptions import HTTPError
+
 
 headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+
 
 def add_favorite_anime(anime_name):
 	home = os.path.expanduser('~')
@@ -146,12 +149,14 @@ def get_episode_list(anime, default_download='mega', updates=False):
 		print("Anime: ", url)
 	
 		soup = BeautifulSoup(response.content, 'html.parser')
-		script = str(soup.findAll('script')[14])
+		script = str(soup.findAll('script')[15])
 		episodes = script.split('var episodes = ')[1]
 		episodes = ast.literal_eval(episodes[:episodes.find(';')])
 		episodes.sort(key=lambda x:x[0])
 		if updates:
 			return episodes
+	except HTTPError as h:
+		raise h
 	except Exception as e:
 		print(e)
 		return []

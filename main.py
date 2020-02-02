@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Only works on animeflv.net
 
 import os
@@ -149,6 +150,7 @@ def get_episode_list(anime, default_download='mega', updates=False):
 		print("Anime: ", url)
 	
 		soup = BeautifulSoup(response.content, 'html.parser')
+		#script = str([script for script in soup.findAll('script') if len(script.split('var episodes = ')) > 1][0])
 		script = str(soup.findAll('script')[15])
 		episodes = script.split('var episodes = ')[1]
 		episodes = ast.literal_eval(episodes[:episodes.find(';')])

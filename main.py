@@ -6,6 +6,7 @@ import ast
 import sys
 import json
 import requests
+import cfscrape
 import urllib.parse
 from bs4                 import BeautifulSoup
 from copy                import copy
@@ -14,7 +15,7 @@ from optparse            import OptionParser
 from requests.exceptions import HTTPError
 
 
-headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+scraper = cfscrape.create_scraper()
 
 
 def add_favorite_anime(anime_name):
@@ -105,7 +106,7 @@ def get_anime_url(anime_name, episode_list=True):
 	anime = None
 
 	try:
-		response = requests.post(animeflv_search, params=params, headers=headers)
+		response = scraper.post(animeflv_search, params=params)
 		response.raise_for_status()
 		url = "https://animeflv.net/anime/{}/{}"
 		data = json.loads(response.content)
@@ -145,7 +146,7 @@ def get_episode_list(anime, default_download='mega', updates=False):
 	limit = int(options.limit) if options.limit else 10
 	try:
 		url = anime['url']
-		response = requests.get(url, headers=headers)
+		response = scraper.get(url)
 		response.raise_for_status()
 		print("Anime: ", url)
 	
@@ -192,7 +193,7 @@ def get_episode_list(anime, default_download='mega', updates=False):
 def get_episode_download_link(url, choose='mega', all_links=False):
 	all_links = options.all if options.all else all_links
 	try:
-		response = requests.get(url, headers=headers)
+		response = scraper.get(url)
 		response.raise_for_status()
 		soup = BeautifulSoup(response.content, 'html.parser')
 		links = [a['href'] for a in soup.findAll('a', {"class": "fa-download"})]

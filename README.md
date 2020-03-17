@@ -31,4 +31,5 @@ Default behaviour: just decodes links directly obtained from the website (to ign
 ### Examples
 
 > python3 main.py --addfavorite "Dr stone"
+
 > python3 main.py --checkupdates -a

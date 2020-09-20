@@ -207,6 +207,9 @@ def get_episode_download_link(url, choose='mega', all_links=False):
 						selected_links.append(link[link.find('?s=')+3:])
 					else:
 						selected_link = link[link.find('?s=')+3:]
+				else:
+					if all_links:
+						selected_links.append(link)
 				if choose in link:
 					break
 		if all_links:
